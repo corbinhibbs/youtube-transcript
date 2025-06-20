@@ -1,3 +1,6 @@
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+
 const RE_YOUTUBE =
   /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
 const USER_AGENT =
@@ -52,14 +55,41 @@ export class YoutubeTranscriptEmptyError extends YoutubeTranscriptError {
     super(`The transcript file URL returns an empty response using ${method} (${videoId})`);
   }
 }
+
+export interface ProxyConfig {
+  host: string;
+  port: number;
+  auth?: {
+    username: string;
+    password: string;
+  };
+  protocol?: 'http' | 'https';
+}
+
 export interface TranscriptConfig {
   lang?: string;
+  proxy?: ProxyConfig;
 }
 export interface TranscriptResponse {
   text: string;
   duration: number;
   offset: number;
   lang?: string;
+}
+
+/**
+ * Create a proxy agent based on the proxy configuration
+ */
+function createProxyAgent(proxyConfig: ProxyConfig) {
+  const protocol = proxyConfig.protocol || 'http';
+  const auth = proxyConfig.auth 
+    ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}@`
+    : '';
+  const proxyUrl = `${protocol}://${auth}${proxyConfig.host}:${proxyConfig.port}`;
+  
+  return protocol === 'https' 
+    ? new HttpsProxyAgent(proxyUrl)
+    : new HttpProxyAgent(proxyUrl);
 }
 
 /**
@@ -93,6 +123,10 @@ export class YoutubeTranscript {
    */
   private static async fetchTranscriptWithHtmlScraping(videoId: string, config?: TranscriptConfig) {
     const identifier = this.retrieveVideoId(videoId);
+    
+    // Create proxy agent if proxy is configured
+    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
+    
     const videoPageResponse = await fetch(
       `https://www.youtube.com/watch?v=${identifier}`,
       {
@@ -100,6 +134,7 @@ export class YoutubeTranscript {
           ...(config?.lang && { 'Accept-Language': config.lang }),
           'User-Agent': USER_AGENT,
         },
+        ...(agent && { agent }),
       }
     );
     const videoPageBody = await videoPageResponse.text();
@@ -149,6 +184,10 @@ export class YoutubeTranscript {
     config?: TranscriptConfig
   ): Promise<TranscriptResponse[]> {
     const identifier = this.retrieveVideoId(videoId);
+    
+    // Create proxy agent if proxy is configured
+    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
+    
     const options = {
       method: 'POST',
       headers: {
@@ -167,6 +206,7 @@ export class YoutubeTranscript {
         },
         videoId: identifier,
       }),
+      ...(agent && { agent }),
     }
     
     const InnerTubeApiResponse = await fetch(
@@ -229,11 +269,15 @@ export class YoutubeTranscript {
         : captions.captionTracks[0]
     ).baseUrl;
 
+    // Create proxy agent if proxy is configured
+    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
+    
     const transcriptResponse = await fetch(transcriptURL, {
       headers: {
         ...(config?.lang && { 'Accept-Language': config.lang }),
         'User-Agent': USER_AGENT,
       },
+      ...(agent && { agent }),
     });
     if (!transcriptResponse.ok) {
       throw new YoutubeTranscriptNotAvailableError(videoId);
