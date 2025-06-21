@@ -1,5 +1,4 @@
-const { HttpsProxyAgent } = require('https-proxy-agent');
-const { HttpProxyAgent } = require('http-proxy-agent');
+import axios from 'axios';
 
 const RE_YOUTUBE =
   /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -77,19 +76,29 @@ export interface TranscriptResponse {
   lang?: string;
 }
 
+interface AxiosProxyConfig {
+  protocol: string;
+  host: string;
+  port: number;
+  auth?: {
+    username: string;
+    password: string;
+  };
+}
+
 /**
- * Create a proxy agent based on the proxy configuration
+ * Convert ProxyConfig to Axios proxy format
  */
-function createProxyAgent(proxyConfig: ProxyConfig) {
-  const protocol = proxyConfig.protocol || 'http';
-  const auth = proxyConfig.auth 
-    ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}@`
-    : '';
-  const proxyUrl = `${protocol}://${auth}${proxyConfig.host}:${proxyConfig.port}`;
-  
-  return protocol === 'https' 
-    ? new HttpsProxyAgent(proxyUrl)
-    : new HttpProxyAgent(proxyUrl);
+function createAxiosProxyConfig(proxyConfig: ProxyConfig): AxiosProxyConfig {
+  return {
+    protocol: proxyConfig.protocol || 'http',
+    host: proxyConfig.host,
+    port: proxyConfig.port,
+    auth: proxyConfig.auth ? {
+      username: proxyConfig.auth.username,
+      password: proxyConfig.auth.password,
+    } : undefined,
+  };
 }
 
 /**
@@ -128,21 +137,20 @@ export class YoutubeTranscript {
     const identifier = this.retrieveVideoId(videoId);
     console.log('fetchTranscriptWithHtmlScraping', identifier, config);
     
-    // Create proxy agent if proxy is configured
-    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
-    console.log('fetchTranscriptWithHtmlScraping agent', agent);
+    const axiosConfig = {
+      headers: {
+        ...(config?.lang && { 'Accept-Language': config.lang }),
+        'User-Agent': USER_AGENT,
+      },
+      ...(config?.proxy && { proxy: createAxiosProxyConfig(config.proxy) }),
+    };
+    console.log('fetchTranscriptWithHtmlScraping axiosConfig', axiosConfig);
     
-    const videoPageResponse = await fetch(
+    const videoPageResponse = await axios.get<string>(
       `https://www.youtube.com/watch?v=${identifier}`,
-      {
-        headers: {
-          ...(config?.lang && { 'Accept-Language': config.lang }),
-          'User-Agent': USER_AGENT,
-        },
-        ...(agent && { agent }),
-      }
+      axiosConfig
     );
-    const videoPageBody = await videoPageResponse.text();
+    const videoPageBody: string = videoPageResponse.data;
 
     console.log('videoPageBody', videoPageBody);
     const splittedHTML = videoPageBody.split('"captions":');
@@ -191,18 +199,19 @@ export class YoutubeTranscript {
   ): Promise<TranscriptResponse[]> {
     const identifier = this.retrieveVideoId(videoId);
     
-    // Create proxy agent if proxy is configured
-    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
-    
-    const options = {
-      method: 'POST',
+    const axiosConfig = {
       headers: {
         ...(config?.lang && { 'Accept-Language': config.lang }),
         'Content-Type': 'application/json',
         Origin: 'https://www.youtube.com',
         Referer: `https://www.youtube.com/watch?v=${identifier}`
       },
-      body: JSON.stringify({
+      ...(config?.proxy && { proxy: createAxiosProxyConfig(config.proxy) }),
+    };
+    
+    const InnerTubeApiResponse = await axios.post<any>(
+      'https://www.youtube.com/youtubei/v1/player',
+      {
         context: {
           client: {
             clientName: 'WEB',
@@ -211,16 +220,11 @@ export class YoutubeTranscript {
           }
         },
         videoId: identifier,
-      }),
-      ...(agent && { agent }),
-    }
-    
-    const InnerTubeApiResponse = await fetch(
-      'https://www.youtube.com/youtubei/v1/player',
-      options
+      },
+      axiosConfig
     );
 
-    const { captions: { playerCaptionsTracklistRenderer: captions } } = await InnerTubeApiResponse.json();
+    const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
 
     const processedTranscript = await this.processTranscriptFromCaptions(
       captions,
@@ -275,20 +279,16 @@ export class YoutubeTranscript {
         : captions.captionTracks[0]
     ).baseUrl;
 
-    // Create proxy agent if proxy is configured
-    const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
-    
-    const transcriptResponse = await fetch(transcriptURL, {
+    const axiosConfig = {
       headers: {
         ...(config?.lang && { 'Accept-Language': config.lang }),
         'User-Agent': USER_AGENT,
       },
-      ...(agent && { agent }),
-    });
-    if (!transcriptResponse.ok) {
-      throw new YoutubeTranscriptNotAvailableError(videoId);
-    }
-    const transcriptBody = await transcriptResponse.text();
+      ...(config?.proxy && { proxy: createAxiosProxyConfig(config.proxy) }),
+    };
+    
+    const transcriptResponse = await axios.get<string>(transcriptURL, axiosConfig);
+    const transcriptBody: string = transcriptResponse.data;
     const results = [...transcriptBody.matchAll(RE_XML_TRANSCRIPT)];
     return results.map((result) => ({
       text: result[3],
