@@ -140,7 +140,7 @@ export class YoutubeTranscript {
       return await this.fetchTranscriptWithHtmlScraping(videoId, config);
     } catch (e) {
       if (e instanceof YoutubeTranscriptEmptyError) {
-        return await this.fetchTranscriptWithInnerTube(videoId, config);
+        // return await this.fetchTranscriptWithInnerTube(videoId, config);
       } else { 
         throw e;
       }
@@ -200,53 +200,53 @@ export class YoutubeTranscript {
     }
   }
 
-  /**
-   * Fetch transcript from YTB Video using InnerTube API
-   * @param videoId Video url or video identifier
-   * @param config Get transcript in a specific language ISO
-   */
-  private static async fetchTranscriptWithInnerTube(
-    videoId: string,
-    config?: TranscriptConfig
-  ): Promise<TranscriptResponse[]> {
-    const identifier = this.retrieveVideoId(videoId);
+  // /**
+  //  * Fetch transcript from YTB Video using InnerTube API
+  //  * @param videoId Video url or video identifier
+  //  * @param config Get transcript in a specific language ISO
+  //  */
+  // private static async fetchTranscriptWithInnerTube(
+  //   videoId: string,
+  //   config?: TranscriptConfig
+  // ): Promise<TranscriptResponse[]> {
+  //   const identifier = this.retrieveVideoId(videoId);
     
-    const requestBody = {
-      context: {
-        client: {
-          clientName: 'WEB',
-          clientVersion: '2.20250312.04.00',
-          userAgent: USER_AGENT
-        }
-      },
-      videoId: identifier,
-    };
+  //   const requestBody = {
+  //     context: {
+  //       client: {
+  //         clientName: 'WEB',
+  //         clientVersion: '2.20250312.04.00',
+  //         userAgent: USER_AGENT
+  //       }
+  //     },
+  //     videoId: identifier,
+  //   };
     
-    const axiosConfig = createAxiosConfig(config, true);
-    axiosConfig.headers['Content-Type'] = 'application/json';
-    axiosConfig.headers['Origin'] = 'https://www.youtube.com';
-    axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
+  //   const axiosConfig = createAxiosConfig(config, true);
+  //   axiosConfig.headers['Content-Type'] = 'application/json';
+  //   axiosConfig.headers['Origin'] = 'https://www.youtube.com';
+  //   axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
     
-    try {
-      const InnerTubeApiResponse = await axios.post<any>('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
-      const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
+  //   try {
+  //     const InnerTubeApiResponse = await axios.post<any>('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
+  //     const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
 
-      const processedTranscript = await this.processTranscriptFromCaptions(
-        captions,
-        videoId,
-        config
-      );
+  //     const processedTranscript = await this.processTranscriptFromCaptions(
+  //       captions,
+  //       videoId,
+  //       config
+  //     );
 
-      if (!processedTranscript.length) {
-        throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
-      }
+  //     if (!processedTranscript.length) {
+  //       throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
+  //     }
 
-      return processedTranscript;
-    } catch (error) {
-      console.log('fetchTranscriptWithInnerTube failed:', error.message);
-      throw error;
-    }
-  }
+  //     return processedTranscript;
+  //   } catch (error) {
+  //     console.log('fetchTranscriptWithInnerTube failed:', error.message);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * Process transcript from data captions

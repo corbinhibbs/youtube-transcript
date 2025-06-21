@@ -111,9 +111,7 @@ class YoutubeTranscript {
                 return yield this.fetchTranscriptWithHtmlScraping(videoId, config);
             }
             catch (e) {
-                if (e instanceof YoutubeTranscriptEmptyError) {
-                    return yield this.fetchTranscriptWithInnerTube(videoId, config);
-                }
+                if (e instanceof YoutubeTranscriptEmptyError) ;
                 else {
                     throw e;
                 }
@@ -163,43 +161,47 @@ class YoutubeTranscript {
             }
         });
     }
-    /**
-     * Fetch transcript from YTB Video using InnerTube API
-     * @param videoId Video url or video identifier
-     * @param config Get transcript in a specific language ISO
-     */
-    static fetchTranscriptWithInnerTube(videoId, config) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const identifier = this.retrieveVideoId(videoId);
-            const requestBody = {
-                context: {
-                    client: {
-                        clientName: 'WEB',
-                        clientVersion: '2.20250312.04.00',
-                        userAgent: USER_AGENT
-                    }
-                },
-                videoId: identifier,
-            };
-            const axiosConfig = createAxiosConfig(config, true);
-            axiosConfig.headers['Content-Type'] = 'application/json';
-            axiosConfig.headers['Origin'] = 'https://www.youtube.com';
-            axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
-            try {
-                const InnerTubeApiResponse = yield axios__default['default'].post('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
-                const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
-                const processedTranscript = yield this.processTranscriptFromCaptions(captions, videoId, config);
-                if (!processedTranscript.length) {
-                    throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
-                }
-                return processedTranscript;
-            }
-            catch (error) {
-                console.log('fetchTranscriptWithInnerTube failed:', error.message);
-                throw error;
-            }
-        });
-    }
+    // /**
+    //  * Fetch transcript from YTB Video using InnerTube API
+    //  * @param videoId Video url or video identifier
+    //  * @param config Get transcript in a specific language ISO
+    //  */
+    // private static async fetchTranscriptWithInnerTube(
+    //   videoId: string,
+    //   config?: TranscriptConfig
+    // ): Promise<TranscriptResponse[]> {
+    //   const identifier = this.retrieveVideoId(videoId);
+    //   const requestBody = {
+    //     context: {
+    //       client: {
+    //         clientName: 'WEB',
+    //         clientVersion: '2.20250312.04.00',
+    //         userAgent: USER_AGENT
+    //       }
+    //     },
+    //     videoId: identifier,
+    //   };
+    //   const axiosConfig = createAxiosConfig(config, true);
+    //   axiosConfig.headers['Content-Type'] = 'application/json';
+    //   axiosConfig.headers['Origin'] = 'https://www.youtube.com';
+    //   axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
+    //   try {
+    //     const InnerTubeApiResponse = await axios.post<any>('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
+    //     const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
+    //     const processedTranscript = await this.processTranscriptFromCaptions(
+    //       captions,
+    //       videoId,
+    //       config
+    //     );
+    //     if (!processedTranscript.length) {
+    //       throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
+    //     }
+    //     return processedTranscript;
+    //   } catch (error) {
+    //     console.log('fetchTranscriptWithInnerTube failed:', error.message);
+    //     throw error;
+    //   }
+    // }
     /**
      * Process transcript from data captions
      * @param captions Data captions

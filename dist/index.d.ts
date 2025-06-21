@@ -58,12 +58,6 @@ export declare class YoutubeTranscript {
      */
     private static fetchTranscriptWithHtmlScraping;
     /**
-     * Fetch transcript from YTB Video using InnerTube API
-     * @param videoId Video url or video identifier
-     * @param config Get transcript in a specific language ISO
-     */
-    private static fetchTranscriptWithInnerTube;
-    /**
      * Process transcript from data captions
      * @param captions Data captions
      * @param videoId Video url or video identifier
