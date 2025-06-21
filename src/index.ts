@@ -115,7 +115,7 @@ export class YoutubeTranscript {
     config?: TranscriptConfig
   ): Promise<TranscriptResponse[]> {
     try {
-      console.log('fetchTranscriptWithHtmlScraping', videoId, config);
+      console.log('fetchTranscriptWithHtmlScraping1', videoId, config);
       return await this.fetchTranscriptWithHtmlScraping(videoId, config);
     } catch (e) {
       if (e instanceof YoutubeTranscriptEmptyError) {
@@ -135,7 +135,7 @@ export class YoutubeTranscript {
    */
   private static async fetchTranscriptWithHtmlScraping(videoId: string, config?: TranscriptConfig) {
     const identifier = this.retrieveVideoId(videoId);
-    console.log('fetchTranscriptWithHtmlScraping', identifier, config);
+    console.log('fetchTranscriptWithHtmlScraping2', identifier, config);
     
     const axiosConfig = {
       headers: {
@@ -144,7 +144,7 @@ export class YoutubeTranscript {
       },
       ...(config?.proxy && { proxy: createAxiosProxyConfig(config.proxy) }),
     };
-    console.log('fetchTranscriptWithHtmlScraping axiosConfig', axiosConfig);
+    console.log('fetchTranscriptWithHtmlScraping3', axiosConfig);
     
     const videoPageResponse = await axios.get<string>(
       `https://www.youtube.com/watch?v=${identifier}`,

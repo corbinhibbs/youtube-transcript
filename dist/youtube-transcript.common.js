@@ -85,7 +85,7 @@ class YoutubeTranscript {
     static fetchTranscript(videoId, config) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log('fetchTranscriptWithHtmlScraping', videoId, config);
+                console.log('fetchTranscriptWithHtmlScraping1', videoId, config);
                 return yield this.fetchTranscriptWithHtmlScraping(videoId, config);
             }
             catch (e) {
@@ -109,9 +109,9 @@ class YoutubeTranscript {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const identifier = this.retrieveVideoId(videoId);
-            console.log('fetchTranscriptWithHtmlScraping', identifier, config);
+            console.log('fetchTranscriptWithHtmlScraping2', identifier, config);
             const axiosConfig = Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }) }, ((config === null || config === void 0 ? void 0 : config.proxy) && { proxy: createAxiosProxyConfig(config.proxy) }));
-            console.log('fetchTranscriptWithHtmlScraping axiosConfig', axiosConfig);
+            console.log('fetchTranscriptWithHtmlScraping3', axiosConfig);
             const videoPageResponse = yield axios__default['default'].get(`https://www.youtube.com/watch?v=${identifier}`, axiosConfig);
             const videoPageBody = videoPageResponse.data;
             console.log('videoPageBody', videoPageBody);
