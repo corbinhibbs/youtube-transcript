@@ -1,6 +1,6 @@
 {
-  "name": "@danielxceron/youtube-transcript",
-  "version": "1.2.3",
+  "name": "@corbinhibbs/youtube-transcript",
+  "version": "1.2.4",
   "description": "Fetch transcript from a youtube video",
   "main": "dist/youtube-transcript.common.js",
   "browser": "dist/youtube-transcript.esm.js",
@@ -9,9 +9,10 @@
   "scripts": {
     "build": "rollup -c"
   },
-  "author": "Daniel Ceron Claros <danielxceron>",
+  "author": "Corbin Hibbs <corbinhibbs>",
   "contributors": [
-    "Kakulukian (Original author)"
+    "Daniel Ceron Claros <danielxceron> (Original author)",
+    "Corbin Hibbs <corbinhibbs> (Modified for n8n)"
   ],
   "keywords": [
     "youtube",
@@ -33,11 +34,11 @@
   "files": [
     "dist/*"
   ],
-  "repository": "https://github.com/danielxceron/youtube-transcript.git",
+  "repository": "https://github.com/corbinhibbs/youtube-transcript.git",
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/danielxceron/youtube-transcript",
+  "homepage": "https://github.com/corbinhibbs/youtube-transcript",
   "engines": {
     "node": ">=18.0.0"
   }
