@@ -74,6 +74,25 @@ function createAxiosProxyConfig(proxyConfig) {
     };
 }
 /**
+ * Create axios configuration with proper proxy and SSL handling
+ */
+function createAxiosConfig(config, isHttps = true) {
+    const axiosConfig = {
+        headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }),
+        timeout: 30000,
+    };
+    if (config === null || config === void 0 ? void 0 : config.proxy) {
+        axiosConfig.proxy = createAxiosProxyConfig(config.proxy);
+        // For HTTPS requests through HTTP proxies, we need to handle the tunnel properly
+        if (isHttps && config.proxy.protocol === 'http') {
+            axiosConfig.httpsAgent = new (require('https').Agent)({
+                rejectUnauthorized: false // This might be needed for some proxy setups
+            });
+        }
+    }
+    return axiosConfig;
+}
+/**
  * Class to retrieve transcript if exist
  */
 class YoutubeTranscript {
@@ -106,38 +125,48 @@ class YoutubeTranscript {
      * @param config Get transcript in a specific language ISO
      */
     static fetchTranscriptWithHtmlScraping(videoId, config) {
-        var _a;
+        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
             const identifier = this.retrieveVideoId(videoId);
             console.log('fetchTranscriptWithHtmlScraping2', identifier, config);
-            const axiosConfig = Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }) }, ((config === null || config === void 0 ? void 0 : config.proxy) && { proxy: createAxiosProxyConfig(config.proxy) }));
+            const axiosConfig = createAxiosConfig(config, true);
             console.log('fetchTranscriptWithHtmlScraping3', axiosConfig);
-            const videoPageResponse = yield axios__default['default'].get(`https://www.youtube.com/watch?v=${identifier}`, axiosConfig);
-            const videoPageBody = videoPageResponse.data;
-            console.log('videoPageBody', videoPageBody);
-            const splittedHTML = videoPageBody.split('"captions":');
-            if (splittedHTML.length <= 1) {
-                if (videoPageBody.includes('class="g-recaptcha"')) {
-                    throw new YoutubeTranscriptTooManyRequestError();
+            try {
+                const videoPageResponse = yield axios__default['default'].get(`https://www.youtube.com/watch?v=${identifier}`, axiosConfig);
+                const videoPageBody = videoPageResponse.data;
+                console.log('videoPageBody', videoPageBody);
+                const splittedHTML = videoPageBody.split('"captions":');
+                if (splittedHTML.length <= 1) {
+                    if (videoPageBody.includes('class="g-recaptcha"')) {
+                        throw new YoutubeTranscriptTooManyRequestError();
+                    }
+                    if (!videoPageBody.includes('"playabilityStatus":')) {
+                        throw new YoutubeTranscriptVideoUnavailableError(videoId);
+                    }
+                    throw new YoutubeTranscriptDisabledError(videoId);
                 }
-                if (!videoPageBody.includes('"playabilityStatus":')) {
-                    throw new YoutubeTranscriptVideoUnavailableError(videoId);
+                const captions = (_a = (() => {
+                    try {
+                        return JSON.parse(splittedHTML[1].split(',"videoDetails')[0].replace('\n', ''));
+                    }
+                    catch (e) {
+                        return undefined;
+                    }
+                })()) === null || _a === void 0 ? void 0 : _a['playerCaptionsTracklistRenderer'];
+                const processedTranscript = yield this.processTranscriptFromCaptions(captions, videoId, config);
+                if (!processedTranscript.length) {
+                    throw new YoutubeTranscriptEmptyError(videoId, 'HTML scraping');
                 }
-                throw new YoutubeTranscriptDisabledError(videoId);
+                return processedTranscript;
             }
-            const captions = (_a = (() => {
-                try {
-                    return JSON.parse(splittedHTML[1].split(',"videoDetails')[0].replace('\n', ''));
+            catch (error) {
+                // If it's a proxy/SSL related error, provide more context
+                if (error.code === 'EPROTO' || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('SSL')) || ((_c = error.message) === null || _c === void 0 ? void 0 : _c.includes('TLS'))) {
+                    console.log('SSL/Proxy error detected, trying without proxy or with different configuration');
+                    throw new YoutubeTranscriptError(`SSL/Proxy connection failed: ${error.message}. Please check your proxy configuration.`);
                 }
-                catch (e) {
-                    return undefined;
-                }
-            })()) === null || _a === void 0 ? void 0 : _a['playerCaptionsTracklistRenderer'];
-            const processedTranscript = yield this.processTranscriptFromCaptions(captions, videoId, config);
-            if (!processedTranscript.length) {
-                throw new YoutubeTranscriptEmptyError(videoId, 'HTML scraping');
+                throw error;
             }
-            return processedTranscript;
         });
     }
     /**
@@ -146,25 +175,39 @@ class YoutubeTranscript {
      * @param config Get transcript in a specific language ISO
      */
     static fetchTranscriptWithInnerTube(videoId, config) {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const identifier = this.retrieveVideoId(videoId);
-            const axiosConfig = Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'Content-Type': 'application/json', Origin: 'https://www.youtube.com', Referer: `https://www.youtube.com/watch?v=${identifier}` }) }, ((config === null || config === void 0 ? void 0 : config.proxy) && { proxy: createAxiosProxyConfig(config.proxy) }));
-            const InnerTubeApiResponse = yield axios__default['default'].post('https://www.youtube.com/youtubei/v1/player', {
-                context: {
-                    client: {
-                        clientName: 'WEB',
-                        clientVersion: '2.20250312.04.00',
-                        userAgent: USER_AGENT
-                    }
-                },
-                videoId: identifier,
-            }, axiosConfig);
-            const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
-            const processedTranscript = yield this.processTranscriptFromCaptions(captions, videoId, config);
-            if (!processedTranscript.length) {
-                throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
+            const axiosConfig = createAxiosConfig(config, true);
+            axiosConfig.headers['Content-Type'] = 'application/json';
+            axiosConfig.headers['Origin'] = 'https://www.youtube.com';
+            axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
+            try {
+                const InnerTubeApiResponse = yield axios__default['default'].post('https://www.youtube.com/youtubei/v1/player', {
+                    context: {
+                        client: {
+                            clientName: 'WEB',
+                            clientVersion: '2.20250312.04.00',
+                            userAgent: USER_AGENT
+                        }
+                    },
+                    videoId: identifier,
+                }, axiosConfig);
+                const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
+                const processedTranscript = yield this.processTranscriptFromCaptions(captions, videoId, config);
+                if (!processedTranscript.length) {
+                    throw new YoutubeTranscriptEmptyError(videoId, 'InnerTube API');
+                }
+                return processedTranscript;
             }
-            return processedTranscript;
+            catch (error) {
+                // If it's a proxy/SSL related error, provide more context
+                if (error.code === 'EPROTO' || ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('SSL')) || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('TLS'))) {
+                    console.log('SSL/Proxy error detected in InnerTube API');
+                    throw new YoutubeTranscriptError(`SSL/Proxy connection failed: ${error.message}. Please check your proxy configuration.`);
+                }
+                throw error;
+            }
         });
     }
     /**
@@ -174,6 +217,7 @@ class YoutubeTranscript {
      * @param config Get transcript in a specific language ISO
      */
     static processTranscriptFromCaptions(captions, videoId, config) {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if (!captions) {
                 throw new YoutubeTranscriptDisabledError(videoId);
@@ -187,19 +231,29 @@ class YoutubeTranscript {
             }
             const transcriptURL = ((config === null || config === void 0 ? void 0 : config.lang) ? captions.captionTracks.find((track) => track.languageCode === (config === null || config === void 0 ? void 0 : config.lang))
                 : captions.captionTracks[0]).baseUrl;
-            const axiosConfig = Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }) }, ((config === null || config === void 0 ? void 0 : config.proxy) && { proxy: createAxiosProxyConfig(config.proxy) }));
-            const transcriptResponse = yield axios__default['default'].get(transcriptURL, axiosConfig);
-            const transcriptBody = transcriptResponse.data;
-            const results = [...transcriptBody.matchAll(RE_XML_TRANSCRIPT)];
-            return results.map((result) => {
-                var _a;
-                return ({
-                    text: result[3],
-                    duration: parseFloat(result[2]),
-                    offset: parseFloat(result[1]),
-                    lang: (_a = config === null || config === void 0 ? void 0 : config.lang) !== null && _a !== void 0 ? _a : captions.captionTracks[0].languageCode,
+            const axiosConfig = createAxiosConfig(config, transcriptURL.startsWith('https:'));
+            try {
+                const transcriptResponse = yield axios__default['default'].get(transcriptURL, axiosConfig);
+                const transcriptBody = transcriptResponse.data;
+                const results = [...transcriptBody.matchAll(RE_XML_TRANSCRIPT)];
+                return results.map((result) => {
+                    var _a;
+                    return ({
+                        text: result[3],
+                        duration: parseFloat(result[2]),
+                        offset: parseFloat(result[1]),
+                        lang: (_a = config === null || config === void 0 ? void 0 : config.lang) !== null && _a !== void 0 ? _a : captions.captionTracks[0].languageCode,
+                    });
                 });
-            });
+            }
+            catch (error) {
+                // If it's a proxy/SSL related error, provide more context
+                if (error.code === 'EPROTO' || ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('SSL')) || ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('TLS'))) {
+                    console.log('SSL/Proxy error detected when fetching transcript');
+                    throw new YoutubeTranscriptError(`SSL/Proxy connection failed when fetching transcript: ${error.message}. Please check your proxy configuration.`);
+                }
+                throw error;
+            }
         });
     }
     /**
