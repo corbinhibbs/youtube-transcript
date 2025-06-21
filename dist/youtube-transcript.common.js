@@ -108,16 +108,13 @@ class YoutubeTranscript {
     static fetchTranscript(videoId, config) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log('fetchTranscriptWithHtmlScraping1', videoId, config);
                 return yield this.fetchTranscriptWithHtmlScraping(videoId, config);
             }
             catch (e) {
                 if (e instanceof YoutubeTranscriptEmptyError) {
-                    console.log('fetchTranscriptWithInnerTube', videoId, config);
                     return yield this.fetchTranscriptWithInnerTube(videoId, config);
                 }
                 else {
-                    console.log('fetchTranscriptWithHtmlScraping Throwing error', e);
                     throw e;
                 }
             }
@@ -132,13 +129,10 @@ class YoutubeTranscript {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const identifier = this.retrieveVideoId(videoId);
-            console.log('fetchTranscriptWithHtmlScraping2', identifier, config);
             const axiosConfig = createAxiosConfig(config, true);
-            console.log('fetchTranscriptWithHtmlScraping3', axiosConfig);
             try {
                 const videoPageResponse = yield axios__default['default'].get(`https://www.youtube.com/watch?v=${identifier}`, axiosConfig);
                 const videoPageBody = videoPageResponse.data;
-                console.log('videoPageBody', videoPageBody);
                 const splittedHTML = videoPageBody.split('"captions":');
                 if (splittedHTML.length <= 1) {
                     if (videoPageBody.includes('class="g-recaptcha"')) {
@@ -191,7 +185,6 @@ class YoutubeTranscript {
             axiosConfig.headers['Content-Type'] = 'application/json';
             axiosConfig.headers['Origin'] = 'https://www.youtube.com';
             axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
-            console.log('fetchTranscriptWithInnerTube', axiosConfig);
             try {
                 const InnerTubeApiResponse = yield axios__default['default'].post('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
                 const { captions: { playerCaptionsTracklistRenderer: captions } } = InnerTubeApiResponse.data;
@@ -228,7 +221,6 @@ class YoutubeTranscript {
             const transcriptURL = ((config === null || config === void 0 ? void 0 : config.lang) ? captions.captionTracks.find((track) => track.languageCode === (config === null || config === void 0 ? void 0 : config.lang))
                 : captions.captionTracks[0]).baseUrl;
             const axiosConfig = createAxiosConfig(config, transcriptURL.startsWith('https:'));
-            console.log('processTranscriptFromCaptions', axiosConfig);
             try {
                 const transcriptResponse = yield axios__default['default'].get(transcriptURL, axiosConfig);
                 const transcriptBody = transcriptResponse.data;

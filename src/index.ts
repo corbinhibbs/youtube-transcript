@@ -137,14 +137,11 @@ export class YoutubeTranscript {
     config?: TranscriptConfig
   ): Promise<TranscriptResponse[]> {
     try {
-      console.log('fetchTranscriptWithHtmlScraping1', videoId, config);
       return await this.fetchTranscriptWithHtmlScraping(videoId, config);
     } catch (e) {
       if (e instanceof YoutubeTranscriptEmptyError) {
-        console.log('fetchTranscriptWithInnerTube', videoId, config);
         return await this.fetchTranscriptWithInnerTube(videoId, config);
       } else { 
-        console.log('fetchTranscriptWithHtmlScraping Throwing error', e);
         throw e;
       }
     }
@@ -157,16 +154,13 @@ export class YoutubeTranscript {
    */
   private static async fetchTranscriptWithHtmlScraping(videoId: string, config?: TranscriptConfig) {
     const identifier = this.retrieveVideoId(videoId);
-    console.log('fetchTranscriptWithHtmlScraping2', identifier, config);
     
     const axiosConfig = createAxiosConfig(config, true);
-    console.log('fetchTranscriptWithHtmlScraping3', axiosConfig);
     
     try {
       const videoPageResponse = await axios.get<string>(`https://www.youtube.com/watch?v=${identifier}`, axiosConfig);
       const videoPageBody: string = videoPageResponse.data;
 
-      console.log('videoPageBody', videoPageBody);
       const splittedHTML = videoPageBody.split('"captions":');
 
       if (splittedHTML.length <= 1) {
@@ -232,7 +226,6 @@ export class YoutubeTranscript {
     axiosConfig.headers['Content-Type'] = 'application/json';
     axiosConfig.headers['Origin'] = 'https://www.youtube.com';
     axiosConfig.headers['Referer'] = `https://www.youtube.com/watch?v=${identifier}`;
-    console.log('fetchTranscriptWithInnerTube', axiosConfig);
     
     try {
       const InnerTubeApiResponse = await axios.post<any>('https://www.youtube.com/youtubei/v1/player', requestBody, axiosConfig);
@@ -296,7 +289,6 @@ export class YoutubeTranscript {
     ).baseUrl;
 
     const axiosConfig = createAxiosConfig(config, transcriptURL.startsWith('https:'));
-    console.log('processTranscriptFromCaptions', axiosConfig);
     
     try {
       const transcriptResponse = await axios.get<string>(transcriptURL, axiosConfig);
