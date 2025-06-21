@@ -98,25 +98,26 @@ function createAxiosConfig(config?: TranscriptConfig, isHttps: boolean = true) {
     let proxyUrl: string;
     
     if (typeof config.proxy === 'string') {
-      // Direct proxy URL string
       proxyUrl = config.proxy;
     } else if ('url' in config.proxy) {
-      // ProxyUrlConfig format
       proxyUrl = config.proxy.url;
     } else {
-      // Legacy ProxyConfig format - convert to URL
       const { host, port, auth, protocol = 'http' } = config.proxy;
       const authString = auth ? `${auth.username}:${auth.password}@` : '';
       proxyUrl = `${protocol}://${authString}${host}:${port}`;
     }
     
-    // Use HttpsProxyAgent for HTTPS requests
+    console.log(`🔗 Configuring proxy: ${proxyUrl.replace(/\/\/.*:.*@/, '//***:***@')}`); // Hide credentials in logs
+    
     if (isHttps) {
       axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      console.log('✅ HTTPS proxy agent configured');
     } else {
-      // For HTTP requests, still use HttpsProxyAgent as it handles both
       axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      console.log('✅ HTTP proxy agent configured');
     }
+  } else {
+    console.log('ℹ️  No proxy configured - using direct connection');
   }
 
   return axiosConfig;
