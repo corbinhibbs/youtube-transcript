@@ -115,6 +115,7 @@ class YoutubeTranscript {
             const agent = (config === null || config === void 0 ? void 0 : config.proxy) ? createProxyAgent(config.proxy) : undefined;
             const videoPageResponse = yield fetch(`https://www.youtube.com/watch?v=${identifier}`, Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }) }, (agent && { agent })));
             const videoPageBody = yield videoPageResponse.text();
+            console.log('videoPageBody', videoPageBody);
             const splittedHTML = videoPageBody.split('"captions":');
             if (splittedHTML.length <= 1) {
                 if (videoPageBody.includes('class="g-recaptcha"')) {
