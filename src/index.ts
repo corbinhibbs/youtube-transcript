@@ -113,6 +113,7 @@ export class YoutubeTranscript {
         console.log('fetchTranscriptWithInnerTube', videoId, config);
         return await this.fetchTranscriptWithInnerTube(videoId, config);
       } else { 
+        console.log('fetchTranscriptWithHtmlScraping Throwing error', e);
         throw e;
       }
     }
@@ -125,9 +126,11 @@ export class YoutubeTranscript {
    */
   private static async fetchTranscriptWithHtmlScraping(videoId: string, config?: TranscriptConfig) {
     const identifier = this.retrieveVideoId(videoId);
+    console.log('fetchTranscriptWithHtmlScraping', identifier, config);
     
     // Create proxy agent if proxy is configured
     const agent = config?.proxy ? createProxyAgent(config.proxy) : undefined;
+    console.log('fetchTranscriptWithHtmlScraping agent', agent);
     
     const videoPageResponse = await fetch(
       `https://www.youtube.com/watch?v=${identifier}`,

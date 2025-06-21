@@ -95,6 +95,7 @@ class YoutubeTranscript {
                     return yield this.fetchTranscriptWithInnerTube(videoId, config);
                 }
                 else {
+                    console.log('fetchTranscriptWithHtmlScraping Throwing error', e);
                     throw e;
                 }
             }
@@ -109,8 +110,10 @@ class YoutubeTranscript {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const identifier = this.retrieveVideoId(videoId);
+            console.log('fetchTranscriptWithHtmlScraping', identifier, config);
             // Create proxy agent if proxy is configured
             const agent = (config === null || config === void 0 ? void 0 : config.proxy) ? createProxyAgent(config.proxy) : undefined;
+            console.log('fetchTranscriptWithHtmlScraping agent', agent);
             const videoPageResponse = yield fetch(`https://www.youtube.com/watch?v=${identifier}`, Object.assign({ headers: Object.assign(Object.assign({}, ((config === null || config === void 0 ? void 0 : config.lang) && { 'Accept-Language': config.lang })), { 'User-Agent': USER_AGENT }) }, (agent && { agent })));
             const videoPageBody = yield videoPageResponse.text();
             console.log('videoPageBody', videoPageBody);
