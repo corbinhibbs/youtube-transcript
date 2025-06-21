@@ -86,10 +86,12 @@ class YoutubeTranscript {
     static fetchTranscript(videoId, config) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                console.log('fetchTranscriptWithHtmlScraping', videoId, config);
                 return yield this.fetchTranscriptWithHtmlScraping(videoId, config);
             }
             catch (e) {
                 if (e instanceof YoutubeTranscriptEmptyError) {
+                    console.log('fetchTranscriptWithInnerTube', videoId, config);
                     return yield this.fetchTranscriptWithInnerTube(videoId, config);
                 }
                 else {
@@ -183,7 +185,8 @@ class YoutubeTranscript {
                 !captions.captionTracks.some((track) => track.languageCode === (config === null || config === void 0 ? void 0 : config.lang))) {
                 throw new YoutubeTranscriptNotAvailableLanguageError(config === null || config === void 0 ? void 0 : config.lang, captions.captionTracks.map((track) => track.languageCode), videoId);
             }
-            const transcriptURL = ((config === null || config === void 0 ? void 0 : config.lang) ? captions.captionTracks.find((track) => track.languageCode === (config === null || config === void 0 ? void 0 : config.lang))
+            const transcriptURL = ((config === null || config === void 0 ? void 0 : config.lang)
+                ? captions.captionTracks.find((track) => track.languageCode === (config === null || config === void 0 ? void 0 : config.lang))
                 : captions.captionTracks[0]).baseUrl;
             // Create proxy agent if proxy is configured
             const agent = (config === null || config === void 0 ? void 0 : config.proxy) ? createProxyAgent(config.proxy) : undefined;

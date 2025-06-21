@@ -106,9 +106,11 @@ export class YoutubeTranscript {
     config?: TranscriptConfig
   ): Promise<TranscriptResponse[]> {
     try {
+      console.log('fetchTranscriptWithHtmlScraping', videoId, config);
       return await this.fetchTranscriptWithHtmlScraping(videoId, config);
     } catch (e) {
       if (e instanceof YoutubeTranscriptEmptyError) {
+        console.log('fetchTranscriptWithInnerTube', videoId, config);
         return await this.fetchTranscriptWithInnerTube(videoId, config);
       } else { 
         throw e;
