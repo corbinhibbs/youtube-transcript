@@ -28,9 +28,12 @@ export interface ProxyConfig {
     };
     protocol?: 'http' | 'https';
 }
+export interface ProxyUrlConfig {
+    url: string;
+}
 export interface TranscriptConfig {
     lang?: string;
-    proxy?: ProxyConfig;
+    proxy?: ProxyConfig | ProxyUrlConfig | string;
 }
 export interface TranscriptResponse {
     text: string;

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const RE_YOUTUBE =
   /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
